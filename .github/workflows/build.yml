@@ -3,31 +3,67 @@ name: 打包 Wails App
 on:
   push:
     tags:
-      - 'v*'  # 当推送 v1.0.0 这样的版本标签时触发
+      - 'v*'
 
 jobs:
   build-linux-arm64:
     runs-on: ubuntu-latest
     steps:
-      # 1. 拉取你的项目代码（包含子模块）
+      # 1. 拉取代码
       - name: 拉取代码
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      # 2. 使用社区维护的 Wails 构建 Action（已处理交叉编译）
-      - name: 构建 Wails (Linux ARM64)
-        uses: dAppServer/wails-build-action@v2.2
-        with:
-          build-name: '我的应用'          # 可改成你的应用名
-          build-platform: 'linux/arm64'  # 指定构建目标
-          package: true                  # 自动打包为 .AppImage
-          go-version: '1.21'             # Go 版本
-          # node-version: '18'           # 如需指定 Node 版本可取消注释
+      # 2. 安装 ARM64 交叉编译工具链
+      - name: 安装交叉编译工具链
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc-aarch64-linux-gnu \
+            binutils-aarch64-linux-gnu \
+            libc6-dev-arm64-cross \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev
 
-      # 3. 上传构建产物（供下载）
+      # 3. 安装 Go
+      - name: 安装 Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      # 4. 安装 Node.js
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # 5. 安装前端依赖并构建
+      - name: 构建前端
+        working-directory: ./frontend
+        run: |
+          npm install
+          npm run build
+
+      # 6. 安装 Wails CLI
+      - name: 安装 Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      # 7. 执行 ARM64 交叉编译
+      - name: 编译 Linux ARM64
+        env:
+          GOOS: linux
+          GOARCH: arm64
+          CGO_ENABLED: 1
+          CC: aarch64-linux-gnu-gcc
+          CXX: aarch64-linux-gnu-g++
+          PKG_CONFIG_PATH: /usr/lib/aarch64-linux-gnu/pkgconfig
+        run: wails build --platform linux/arm64
+
+      # 8. 使用最新版 v4 上传产物
       - name: 上传 AppImage
-        uses: actions/upload-artifact@v4  # 使用 v4 版本
+        uses: actions/upload-artifact@v4
         with:
           name: 我的应用-linux-arm64
-          path: build/bin/*.AppImage      # 匹配生成的 .AppImage 文件
+          path: build/bin/*.AppImage
