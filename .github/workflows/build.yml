@@ -4,19 +4,69 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 jobs:
-  build-linux-arm64:
-    runs-on: ubuntu-22.04  # 使用 22.04，对 ARM64 交叉编译支持更好
+  # Linux AMD64（x86_64，最常见的 PC/服务器）
+  build-linux-amd64:
+    runs-on: ubuntu-22.04
     steps:
-      # 1. 拉取代码
       - name: 拉取代码
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      # 2. 添加 ARM64 架构并安装交叉编译工具链和库
-      - name: 安装 ARM64 编译环境
+      - name: 安装 Linux 编译依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config \
+            libgtk-3-dev \
+            libwebkit2gtk-4.0-dev \
+            libayatana-appindicator3-dev \
+            libfuse2 \
+            patchelf
+
+      - name: 安装 Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: 构建前端
+        working-directory: ./frontend
+        run: |
+          npm install
+          npm run build
+
+      - name: 安装 Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: 编译 Linux AMD64
+        env:
+          CGO_ENABLED: 1
+        run: wails build --platform linux/amd64
+
+      - name: 上传 AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: aigc-student-linux-amd64
+          path: build/bin/*.AppImage
+
+  # Linux ARM64（树莓派、ARM 工控机/信息亭）
+  build-linux-arm64:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: 安装 ARM64 交叉编译环境
         run: |
           sudo apt-get update
           sudo dpkg --add-architecture arm64
@@ -32,39 +82,29 @@ jobs:
             libglib2.0-dev:arm64 \
             libcairo2-dev:arm64 \
             libpango1.0-dev:arm64 \
-            libgdk-pixbuf2.0-dev:arm64
+            libgdk-pixbuf2.0-dev:arm64 \
+            libfuse2 \
+            patchelf
 
-      # 3. 设置交叉编译环境变量
-      - name: 设置环境变量
-        run: |
-          echo "CC=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
-          echo "CXX=aarch64-linux-gnu-g++" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig" >> $GITHUB_ENV
-
-      # 4. 安装 Go
       - name: 安装 Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.25.x'
 
-      # 5. 安装 Node.js
       - name: 安装 Node
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      # 6. 构建前端
       - name: 构建前端
         working-directory: ./frontend
         run: |
           npm install
           npm run build
 
-      # 7. 安装 Wails CLI
       - name: 安装 Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
-      # 8. 执行 ARM64 交叉编译
       - name: 编译 Linux ARM64
         env:
           GOOS: linux
@@ -75,9 +115,8 @@ jobs:
           PKG_CONFIG_PATH: /usr/lib/aarch64-linux-gnu/pkgconfig
         run: wails build --platform linux/arm64
 
-      # 9. 上传产物
       - name: 上传 AppImage
         uses: actions/upload-artifact@v4
         with:
-          name: 我的应用-linux-arm64
+          name: aigc-student-linux-arm64
           path: build/bin/*.AppImage
