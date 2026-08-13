@@ -26,33 +26,33 @@ func (a *App) startup(ctx context.Context) {
 }
 
 func (a *App) domReady(ctx context.Context) {
-	displays := GetAllDisplays()
+	// displays := GetAllDisplays()
 
-	// Find the target display:
-	// - If there's a non-primary display (external big screen via HDMI splitter), use it
-	// - Otherwise fall back to the primary display
-	var target *DisplayInfo
-	for i := range displays {
-		d := &displays[i]
-		if d.IsPrimary {
-			target = d
-			break
-		}
-		 fmt.Printf("屏幕 %d: IsPrimary=%v, Left=%d, Top=%d, Width=%d, Height=%d\n",
-        i, d.IsPrimary, d.Left, d.Top, d.Width, d.Height)
-	}
-	if target == nil && len(displays) > 0 {
-		target = &displays[0]
-	}
+	// // Find the target display:
+	// // - If there's a non-primary display (external big screen via HDMI splitter), use it
+	// // - Otherwise fall back to the primary display
+	// var target *DisplayInfo
+	// for i := range displays {
+	// 	d := &displays[i]
+	// 	if d.IsPrimary {
+	// 		target = d
+	// 		break
+	// 	}
+	// 	 fmt.Printf("屏幕 %d: IsPrimary=%v, Left=%d, Top=%d, Width=%d, Height=%d\n",
+    //     i, d.IsPrimary, d.Left, d.Top, d.Width, d.Height)
+	// }
+	// if target == nil && len(displays) > 0 {
+	// 	target = &displays[0]
+	// }
 
-	if target != nil {
-		// Move window to the target display first, then go fullscreen
-		wailsRuntime.WindowSetPosition(ctx, int(target.Left), int(target.Top))
-		wailsRuntime.WindowSetSize(ctx, int(target.Width), int(target.Height))
-	}
+	// if target != nil {
+	// 	// Move window to the target display first, then go fullscreen
+	// 	wailsRuntime.WindowSetPosition(ctx, int(target.Left), int(target.Top))
+	// 	wailsRuntime.WindowSetSize(ctx, int(target.Width), int(target.Height))
+	// }
 
-	// wailsRuntime.WindowSetAlwaysOnTop(ctx, true)
-	// wailsRuntime.WindowFullscreen(ctx)
+	wailsRuntime.WindowSetAlwaysOnTop(ctx, true)
+	wailsRuntime.WindowFullscreen(ctx)
 }
 
 // CheckURLHealth checks if a given URL is reachable and returns a non-error HTTP status.
