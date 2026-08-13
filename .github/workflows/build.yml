@@ -3,27 +3,31 @@ name: 打包 Wails App
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*'  # 当推送 v1.0.0 这样的版本标签时触发
 
 jobs:
   build-linux-arm64:
     runs-on: ubuntu-latest
     steps:
+      # 1. 拉取你的项目代码（包含子模块）
       - name: 拉取代码
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
+      # 2. 使用社区维护的 Wails 构建 Action（已处理交叉编译）
       - name: 构建 Wails (Linux ARM64)
         uses: dAppServer/wails-build-action@v2.2
         with:
-          build-name: 我的应用
-          build-platform: linux/arm64
-          package: true
-          go-version: '1.21'
+          build-name: '我的应用'          # 可改成你的应用名
+          build-platform: 'linux/arm64'  # 指定构建目标
+          package: true                  # 自动打包为 .AppImage
+          go-version: '1.21'             # Go 版本
+          # node-version: '18'           # 如需指定 Node 版本可取消注释
 
+      # 3. 上传构建产物（供下载）
       - name: 上传 AppImage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4  # 使用 v4 版本
         with:
           name: 我的应用-linux-arm64
-          path: build/bin/*.AppImage
+          path: build/bin/*.AppImage      # 匹配生成的 .AppImage 文件
