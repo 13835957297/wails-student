@@ -76,8 +76,8 @@ jobs:
           EOF
           chmod +x AppDir/AppRun
 
-          # 5. 生成 desktop 文件
-          cat > AppDir/usr/share/applications/aigc-student.desktop <<'EOF'
+          # 5. 生成 desktop 文件（AppDir 根目录 + usr/share/applications 各放一份）
+          cat > AppDir/aigc-student.desktop <<'EOF'
           [Desktop Entry]
           Name=AIGC学生端
           Exec=aigc-student
@@ -85,6 +85,7 @@ jobs:
           Type=Application
           Categories=Utility;
           EOF
+          cp AppDir/aigc-student.desktop AppDir/usr/share/applications/aigc-student.desktop
 
           # 6. 生成占位图标（256x256 PNG，纯色，后续可替换）
           python3 - <<'EOF'
