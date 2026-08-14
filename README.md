@@ -49,7 +49,7 @@ const RETRY_INTERVAL = 5000;
 
 ## 前置条件
 
-- [Go](https://go.dev/dl/) 1.21+
+- [Go](https://go.dev/dl/) 1.25+
 - [Node.js](https://nodejs.org/) 18+
 - [Wails v2](https://wails.io/docs/gettingstarted/installation) (`go install github.com/wailsapp/wails/v2/cmd/wails@latest`)
 
@@ -71,6 +71,50 @@ wails build
 ```
 
 构建产物在 `build/bin/` 目录下。
+
+## 打包 Linux 包
+
+### 方式一：GitHub Actions（推荐，无需本地 Linux 编译环境）
+
+推送 `v*` 标签（如 `v1.0.0`）或手动触发 workflow，会自动打包出 Linux 的 **AMD64** 和 **ARM64** 两个架构的 AppImage：
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+构建完成后，在 GitHub 仓库的 **Actions** 页面下载对应产物（Artifacts）。
+
+### 方式二：本地 Linux 打包
+
+在 Ubuntu / Debian 上安装编译依赖：
+
+```bash
+sudo apt-get update
+sudo apt-get install -y \
+  pkg-config \
+  libgtk-3-dev \
+  libwebkit2gtk-4.0-dev \
+  libayatana-appindicator3-dev \
+  libfuse2 \
+  patchelf
+```
+
+安装 Wails CLI 并构建：
+
+```bash
+go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+# 本机架构（x86_64）
+wails build --platform linux/amd64
+
+# 或 ARM64 目标（需先配置交叉编译工具链）
+wails build --platform linux/arm64
+```
+
+产物为 `build/bin/aigc-student`（可执行文件）及 `build/bin/aigc-student.AppImage`。
+
+> AppImage 运行前通常需要 `--appimage-extract-and-run` 或安装 libfuse2，且需可执行权限：`chmod +x aigc-student.AppImage`。
 
 ## 说明
 
