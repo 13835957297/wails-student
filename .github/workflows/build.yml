@@ -55,4 +55,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: aigc-student-linux-amd64
-          path: build/bin/*.AppImage
+          path: build/*.AppImage
