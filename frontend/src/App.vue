@@ -1,14 +1,12 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from "vue";
 import { Quit } from "../wailsjs/runtime/runtime";
-import loadingVideo from "./assets/loading.mp4";
-
 // ===== CONFIGURATION =====
 // Set your target URL here
 const TARGET_URL = "https://aigc0002.cb-ec.cn/";
 
-// Path to the loading video
-const LOADING_VIDEO = loadingVideo;
+// Path to the loading video (served from public/, copied to dist root)
+const LOADING_VIDEO = "./loading.webm";
 
 // Health check interval (ms) when URL is unhealthy
 const RETRY_INTERVAL = 6000;
