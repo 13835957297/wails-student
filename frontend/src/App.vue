@@ -1,12 +1,16 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from "vue";
 import { Quit } from "../wailsjs/runtime/runtime";
+import { GetVideoServerURL } from '../wailsjs/go/main/App.js'
+import { Environment } from '../wailsjs/runtime/runtime.js'
 // ===== CONFIGURATION =====
 // Set your target URL here
 const TARGET_URL = "https://aigc0002.cb-ec.cn/";
 
 // Path to the loading video (served from public/, copied to dist root)
 const LOADING_VIDEO = "./loading.webm";
+
+const videoSrc = ref('/loading.webm')
 
 // Health check interval (ms) when URL is unhealthy
 const RETRY_INTERVAL = 6000;
@@ -28,6 +32,7 @@ async function checkHealth() {
     const result = await window.go.main.App.CheckURLHealth(TARGET_URL);
     if (result === "ok") {
       state.value = "ready";
+      openInNewWindow();
       clearInterval(timer);
     } else {
       state.value = "error";
@@ -39,6 +44,11 @@ async function checkHealth() {
   }
 }
 
+function openInNewWindow() {
+    // window.open('https://aigc0002.cb-ec.cn', '_self', 'width=100%,height=100%,scrollbars=no');
+    window.location.href = TARGET_URL;
+}
+
 function onKeyDown(e) {
   if (e.ctrlKey && (e.key === "q" || e.key === "Q" || e.code === "KeyQ")) {
     e.preventDefault();
@@ -48,6 +58,24 @@ function onKeyDown(e) {
 }
 
 onMounted(async() => {
+  try {
+    const env = await Environment()
+    // Linux 平台使用本地 HTTP 服务器地址
+    if (env.platform === 'linux') {
+      const serverURL = await GetVideoServerURL()
+      if (serverURL) {
+        videoSrc.value = `${serverURL}/loading.webm`
+      }
+    }else {
+      const serverURL = await GetVideoServerURL()
+      if (serverURL) {
+        videoSrc.value = `${serverURL}/loading.webm`
+      }
+    }
+    // Windows 和 macOS 保持默认 /loading.mp4 即可
+  } catch (e) {
+    console.error('获取视频地址失败:', e)
+  }
   // Start periodic health check
   // checkHealth();
   timer = setInterval(checkHealth, RETRY_INTERVAL);
@@ -64,12 +92,13 @@ onUnmounted(() => {
 
 <template>
   <div class="kiosk-container">
+    <!-- <video :src="videoSrc" autoplay loop muted playsinline></video> -->
     <!-- Loading Screen -->
     <!-- <div v-if="state === 'loading' || state === 'error'" class="loading-screen"> -->
     <div v-if="state === 'loading' || state === 'error'" class="loading-screen">
       <video
         class="loading-video"
-        :src="LOADING_VIDEO"
+        :src="videoSrc"
         autoplay
         muted
         loop
@@ -77,6 +106,8 @@ onUnmounted(() => {
         preload="auto"
         @error="onVideoError"
       ></video>
+  
+      <!-- <img src="/loading.png" class="loading-video"> -->
       <!-- <div v-if="videoFailed" class="loading-fallback">
         <div class="spinner"></div>
         <p class="loading-text">Loading...</p>
@@ -92,7 +123,7 @@ onUnmounted(() => {
     </div>
 
     <!-- Target WebView (iframe) -->
-    <div v-show="state === 'ready'" class="target-frame-wrapper">
+    <!-- <div v-show="state === 'ready'" class="target-frame-wrapper">
       <iframe
         class="target-frame"
         :src="TARGET_URL"
@@ -100,7 +131,7 @@ onUnmounted(() => {
         allow="autoplay; camera; microphone; fullscreen"
         sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-downloads"
       ></iframe>
-    </div>
+    </div> -->
   </div>
 </template>
 

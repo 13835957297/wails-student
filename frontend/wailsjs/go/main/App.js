@@ -5,3 +5,11 @@
 export function CheckURLHealth(arg1) {
   return window['go']['main']['App']['CheckURLHealth'](arg1);
 }
+
+export function GetVideoServerURL() {
+  return window['go']['main']['App']['GetVideoServerURL']();
+}
+
+export function StartVideoServer() {
+  return window['go']['main']['App']['StartVideoServer']();
+}
