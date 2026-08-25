@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"context"
 	"fmt"
 	"net/http"
@@ -16,6 +17,9 @@ import (
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
+
+//go:embed frontend/dist/loading.webm
+var videoAssets embed.FS
 
 type App struct {
 	ctx context.Context
@@ -58,7 +62,7 @@ func (a *App) domReady(ctx context.Context) {
 	// 	wailsRuntime.WindowSetSize(ctx, int(target.Width), int(target.Height))
 	// }
 
-	wailsRuntime.WindowSetAlwaysOnTop(ctx, true)
+	// wailsRuntime.WindowSetAlwaysOnTop(ctx, true)
 	wailsRuntime.WindowFullscreen(ctx)
 	js := `(function(){
 		var id = '__wails_hide_scrollbar__';
@@ -160,84 +164,49 @@ func (a *App) restartTeacher() {
 // 启动本地视频文件服务器
 // StartVideoServer 增强版：支持 Windows/Linux，支持 dev/production
 func (a *App) StartVideoServer() string {
-	if a.videoServerURL != "" {
-		return a.videoServerURL
-	}
+    if a.videoServerURL != "" {
+        return a.videoServerURL
+    }
 
-	tmpDir, err := os.MkdirTemp("", "wails-video-*")
-	if err != nil {
-		log.Println("创建临时目录失败:", err)
-		return ""
-	}
+    // 从嵌入的 assets 读取视频
+    data, err := videoAssets.ReadFile("frontend/dist/loading.webm")
+    if err != nil {
+        log.Println("❌ 读取视频失败:", err)
+        return ""
+    }
 
-	videoName := "loading.webm"
-	var data []byte
+    // 创建临时目录并写入视频
+    tmpDir, err := os.MkdirTemp("", "wails-video-*")
+    if err != nil {
+        log.Println("创建临时目录失败:", err)
+        return ""
+    }
 
-	// 1. 先尝试 embed.FS（production build）
-	data, _ = assets.ReadFile(videoName)
+    videoPath := filepath.Join(tmpDir, "loading.webm")
+    if err := os.WriteFile(videoPath, data, 0644); err != nil {
+        os.RemoveAll(tmpDir)
+        log.Println("写入视频失败:", err)
+        return ""
+    }
 
-	// 2. 如果 embed 没有，尝试从磁盘多个可能路径读取（dev 模式）
-	if data == nil {
-		// 收集所有可能的路径
-		var paths []string
+    // 启动 HTTP 服务器
+    fs := http.FileServer(http.Dir(tmpDir))
+    listener, err := net.Listen("tcp", "127.0.0.1:0")
+    if err != nil {
+        os.RemoveAll(tmpDir)
+        log.Println("启动服务器失败:", err)
+        return ""
+    }
 
-		// 从可执行文件所在目录
-		if ex, err := os.Executable(); err == nil {
-			paths = append(paths,
-				filepath.Join(filepath.Dir(ex), videoName),
-				filepath.Join(filepath.Dir(ex), "frontend", "public", videoName),
-			)
-		}
+    a.videoServerURL = fmt.Sprintf("http://%s", listener.Addr().String())
+    go func() {
+        if err := http.Serve(listener, fs); err != nil {
+            log.Println("服务器异常:", err)
+        }
+    }()
 
-		// 从当前工作目录
-		if wd, err := os.Getwd(); err == nil {
-			paths = append(paths,
-				filepath.Join(wd, videoName),
-				filepath.Join(wd, "frontend", "public", videoName),
-				filepath.Join(wd, "..", "frontend", "public", videoName), // 从 frontend/dist 往上
-			)
-		}
-
-		// 逐个尝试
-		for _, p := range paths {
-			d, err := os.ReadFile(p)
-			if err == nil {
-				data = d
-				log.Println("✅ 找到视频文件:", p)
-				break
-			}
-		}
-	}
-
-	if data == nil {
-		log.Println("❌ 找不到视频文件 loading.webm")
-		return ""
-	}
-
-	// 写入临时目录
-	dstPath := filepath.Join(tmpDir, videoName)
-	if err := os.WriteFile(dstPath, data, 0644); err != nil {
-		log.Println("写入临时文件失败:", err)
-		return ""
-	}
-
-	// 启动 HTTP 服务器
-	fs := http.FileServer(http.Dir(tmpDir))
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		log.Println("启动服务器失败:", err)
-		return ""
-	}
-
-	a.videoServerURL = fmt.Sprintf("http://%s", listener.Addr().String())
-	go func() {
-		if err := http.Serve(listener, fs); err != nil {
-			log.Println("服务器异常:", err)
-		}
-	}()
-
-	log.Println("🚀 视频服务器启动于:", a.videoServerURL)
-	return a.videoServerURL
+    log.Println("🚀 视频服务器启动于:", a.videoServerURL)
+    return a.videoServerURL
 }
 func (a *App) GetVideoServerURL() string {
 	return a.videoServerURL
