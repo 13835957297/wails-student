@@ -46,7 +46,7 @@ async function checkHealth() {
 
 function openInNewWindow() {
     // window.open('https://aigc0002.cb-ec.cn', '_self', 'width=100%,height=100%,scrollbars=no');
-    // window.location.href = TARGET_URL;
+    window.location.href = TARGET_URL;
 }
 
 function onKeyDown(e) {
@@ -92,16 +92,6 @@ onUnmounted(() => {
 
 <template>
   <div class="kiosk-container">
-    <video
-        class="loading-video"
-        :src="videoSrc"
-        autoplay
-        muted
-        loop
-        playsinline
-        preload="auto"
-        @error="onVideoError"
-      ></video>
     <!-- <video :src="videoSrc" autoplay loop muted playsinline></video> -->
     <!-- Loading Screen -->
     <!-- <div v-if="state === 'loading' || state === 'error'" class="loading-screen"> -->

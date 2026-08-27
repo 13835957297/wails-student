@@ -62,7 +62,7 @@ func (a *App) domReady(ctx context.Context) {
 	// 	wailsRuntime.WindowSetSize(ctx, int(target.Width), int(target.Height))
 	// }
 
-	// wailsRuntime.WindowSetAlwaysOnTop(ctx, true)
+	wailsRuntime.WindowSetAlwaysOnTop(ctx, true)
 	wailsRuntime.WindowFullscreen(ctx)
 	js := `(function(){
 		var id = '__wails_hide_scrollbar__';
@@ -74,6 +74,7 @@ func (a *App) domReady(ctx context.Context) {
 			"*{scrollbar-width:none!important;}" +
 			"html,body{-ms-overflow-style:none!important;}";
 		(document.head || document.documentElement).appendChild(style);
+		document.addEventListener('contextmenu', e => e.preventDefault(), true);
 	})();`
 	wailsRuntime.WindowExecJS(ctx, js)
 }
@@ -114,7 +115,7 @@ func (a *App) CheckURLHealth(url string) string {
 
 
 func (a *App) restartTeacher() {
-    teacherIP := "192.168.31.125"  // 固定教师端 IP
+    teacherIP := "192.168.20.200"  // 固定教师端 IP
     port := "9527"
 
     // 第一步：先 ping 确认教师端在线
